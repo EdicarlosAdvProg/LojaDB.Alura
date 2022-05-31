@@ -1,4 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,18 +10,53 @@ using System.Threading.Tasks;
 
 namespace Alura.Loja.Testes.ConsoleApp {
     class Program {
+
         static void Main(string[] args) {
 
             using (var context = new LojaContext()) {
-                var produto = context
+
+                var serviceProvider = context.GetInfrastructure<IServiceProvider>();
+                var loggerFactory = serviceProvider.GetService<ILoggerFactory>();
+                loggerFactory.AddProvider(SqlLoggerProvider.Create());
+
+
+
+                //Produto p1 = context
+                //    .Produtos
+                //    .Where(p => p.Nome == "Pão francês")
+                //    .FirstOrDefault();
+
+                //Compra c1 = new Compra(p1, 30);
+                //Compra c2 = new Compra(p1, 26);
+                //Compra c3 = new Compra(p1, 40);
+
+                //context.Compras.Add(c1);
+                //context.Compras.Add(c2);
+                //context.Compras.Add(c3);
+
+                //context.SaveChanges();
+
+
+                Produto produto = context
                     .Produtos
                     .Include(p => p.Compras)
                     .Where(c => c.Id == 11)
                     .FirstOrDefault();
 
+                List<Compra> compras = context.Entry(produto)
+                    .Collection(p => p.Compras)
+                    .Query()
+                    .Where(v => v.Preco > 10)
+                    .ToList();
+
                 Console.WriteLine($"Mostrando compras do produto {produto.Nome}");
-                foreach (var item in produto.Compras) {
+                foreach (var item in compras) {
                     Console.WriteLine(item);
+                }
+
+                Console.WriteLine("=================");
+                foreach (var e in context.ChangeTracker.Entries()) {
+                    Console.WriteLine(e.State);
                 }
             }
         }
